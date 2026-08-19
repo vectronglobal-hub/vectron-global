@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#050505">
+  <title>Vectron Global</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #050505;
+    }
+
+    body {
+      cursor: default;
+      font-family: Arial, sans-serif;
+    }
+
+    /* Full-screen artwork only */
+    .page {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      background: #050505;
+      opacity: 0;
+      transform: scale(1.025);
+      transition:
+        opacity 1.4s ease,
+        transform 2s cubic-bezier(.2,.7,.2,1);
+    }
+
+    .page.loaded {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .artwork {
+      position: absolute;
+      inset: -2.5%;
+      width: 105%;
+      height: 105%;
+      object-fit: cover;
+      object-position: center;
+      will-change: transform;
+      transform: translate3d(0, 0, 0) scale(1.015);
+      transition: transform 1.2s cubic-bezier(.2,.7,.2,1);
+      user-select: none;
+      -webkit-user-drag: none;
+      pointer-events: none;
+    }
+
+    /* Very subtle cinematic depth caused only by mouse movement */
+    .page:hover .artwork {
+      transition: transform .18s cubic-bezier(.2,.7,.2,1);
+    }
+
+    /* Soft cinematic vignette — no visible text or UI */
+    .vignette {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(
+          ellipse at center,
+          transparent 52%,
+          rgba(0,0,0,.10) 72%,
+          rgba(0,0,0,.32) 100%
+        );
+      mix-blend-mode: multiply;
+      opacity: .55;
+    }
+
+    /* Tiny light response following the pointer.
+       Kept extremely subtle so the original photo remains the focus. */
+    .pointer-light {
+      position: absolute;
+      width: 360px;
+      height: 360px;
+      left: 0;
+      top: 0;
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(
+        circle,
+        rgba(255, 188, 92, .055) 0%,
+        rgba(60, 150, 255, .025) 28%,
+        transparent 68%
+      );
+      opacity: 0;
+      transition: opacity .5s ease;
+      mix-blend-mode: screen;
+    }
+
+    .page:hover .pointer-light {
+      opacity: 1;
+    }
+
+    /* Mobile: reduce movement so the composition stays stable */
+    @media (max-width: 700px) {
+      .artwork {
+        inset: -1%;
+        width: 102%;
+        height: 102%;
+        object-position: center;
+      }
+
+      .pointer-light {
+        display: none;
+      }
+    }
+
+    /* Respect accessibility preferences */
+    @media (prefers-reduced-motion: reduce) {
+      .page,
+      .artwork {
+        transition: none !important;
+      }
+
+      .pointer-light {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="page" id="page" aria-label="Vectron Global">
+    <img
+      class="artwork"
+      id="artwork"
+      src="main-page.png"
+      alt="Vectron Global industrial heritage artwork"
+      draggable="false"
+    >
+
+    <div class="vignette" aria-hidden="true"></div>
+    <div class="pointer-light" id="pointerLight" aria-hidden="true"></div>
+  </main>
+
+  <script>
+    const page = document.getElementById("page");
+    const artwork = document.getElementById("artwork");
+    const pointerLight = document.getElementById("pointerLight");
+
+    let targetX = 0;
+    let targetY = 0;
+    let currentX = 0;
+    let currentY = 0;
+    let raf = null;
+
+    function animate() {
+      currentX += (targetX - currentX) * 0.075;
+      currentY += (targetY - currentY) * 0.075;
+
+      // Very small movement: premium depth, not a distracting effect.
+      artwork.style.transform =
+        `translate3d(${currentX}px, ${currentY}px, 0) scale(1.015)`;
+
+      if (pointerLight) {
+        pointerLight.style.left =
+          `${50 + currentX * 0.35}%`;
+        pointerLight.style.top =
+          `${50 + currentY * 0.35}%`;
+      }
+
+      raf = requestAnimationFrame(animate);
+    }
+
+    artwork.addEventListener("load", () => {
+      requestAnimationFrame(() => {
+        page.classList.add("loaded");
+      });
+    });
+
+    window.addEventListener("mousemove", (event) => {
+      const x = (event.clientX / window.innerWidth) - 0.5;
+      const y = (event.clientY / window.innerHeight) - 0.5;
+
+      targetX = x * -10;
+      targetY = y * -7;
+
+      if (!raf) animate();
+    }, { passive: true });
+
+    window.addEventListener("mouseleave", () => {
+      targetX = 0;
+      targetY = 0;
+    });
+
+    // If the browser has already cached the image.
+    if (artwork.complete) {
+      requestAnimationFrame(() => {
+        page.classList.add("loaded");
+      });
+    }
+
+    animate();
+  </script>
+
+</body>
+</html>
